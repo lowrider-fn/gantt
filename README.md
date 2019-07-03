@@ -24,6 +24,6 @@ npm run test
 ```
 npm run lint
 ```
-
+### dhtmlx gantt docs https://docs.dhtmlx.com/gantt/desktop__guides.html
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
