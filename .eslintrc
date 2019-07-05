@@ -107,7 +107,7 @@
     "align-assignments/align-assignments": [2, {
       "requiresOnly": false
     }],
-    "arca/curly": 2,
+    "arca/curly": 0,
     "arca/import-align": 2,
     "no-underscore-dangle": ["error", {
       "allow": ["_id"]
