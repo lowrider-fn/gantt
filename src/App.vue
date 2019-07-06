@@ -4,33 +4,33 @@
         <div class="container">
             <div v-if="errorText">{{ errorText }}</div>
             <div v-if="tasks.data">
-                <button v-for="(grid,i) in statesScale"
+                <button v-for="(state,i) in statesScale"
                         :key="i" 
-                        :id="grid"
-                        @click="setScaleConfig(grid)"
+                        :id="state"
+                        @click="setScaleConfig(state)"
                         type="button"
                 >
-                    {{ grid }}
+                    {{ state }}
                 </button>
             </div>
-            <div ref="gantt" class="left-container"></div>
+            <div ref="gantt" class="gantt"></div>
         </div>
     </div>
 </template>
 
 <script>
+
 import axios     from 'axios';
-import Gantt     from './components/gantt.vue';
 import { gantt } from 'dhtmlx-gantt';
+
 export default {
-    name      : 'app',
-    components: { Gantt },
-    data      : () => ({
+    name: 'app',
+    data: () => ({
         errorText  : '',
         tasks      : {data : null},
         isReadonly : false,
         statesScale: ['day','week','month'],
-        // stateScale  : '',
+        stateScale : 'day',
     }),
     computed: {
         isInit() {
@@ -40,25 +40,28 @@ export default {
     mounted() {
         this.createRequest({url : '/get/data.json'})
             .then(tasks => this.initGantt(tasks))
-            .catch(error => this.errorText = error.text || 'Неизвестная ошибка');
+            .catch(error => {
+                console.error(error);
+                this.errorText = error.text || 'Неизвестная ошибка' ;
+            });
     },
     methods: {
         initGantt(tasks) {
+            this.setWorkDays();
             this.tasks.data = tasks;
-            this.setColumnsComfig();
-            this.setColumnsComfig();
-            this.setTasksComfig();
+            this.setColumnsConfig();
+            this.setColumnsConfig();
+            this.setTasksConfig();
             this.setRowsConfig();
             this.setMarkerToday();
-            this.setWorkDays();
             this.setScaleDay();
-              
+           
             gantt.config.readonly = this.isReadonly;
             gantt.init(this.$refs.gantt);
             gantt.parse(this.tasks);
         },
         setScaleConfig(state) {
-            // this.stateScale = state;
+            this.stateScale = state;
             switch (state) {
             case 'day':
                 this.setScaleDay();
@@ -91,7 +94,9 @@ export default {
         },
         setWorkDays() {
             gantt.templates.task_cell_class = (task,date) => {
-                if(date.getDay() === 0 || date.getDay() === 6) return 'weekend';
+                date = date.getDay();
+                if(this.stateScale === 'day' && (date === 0 || date === 6)) return 'gantt__weekend';
+                return 'gantt__workday';
             };
         },
         setScaleDay() {
@@ -104,33 +109,77 @@ export default {
             ];
             gantt.config.scale_height = 60;
         },
-        setColumnsComfig() {
+        setColumnsConfig() {
             gantt.config.columns = [
                 {
-                    name : 'text',     
-                    label: 'Тема', 
-                    width: 400,
-                    tree : true 
+                    name    : 'text',     
+                    label   : 'Тема', 
+                    width   : 400,
+                    tree    : true ,
+                    template: (obj) => `<a  href="${obj.url}">${obj.text}</a> `
                 },
                 {
-                    name : 'priority',        
-                    label: 'Приоритет',   
-                    align: 'center',   
-                    width: 100 ,
-                    template(obj) {
-                        return obj.priority || '' ; }
+                    name    : 'priority',        
+                    label   : 'Приоритет',   
+                    align   : 'center',   
+                    width   : 100 ,
+                    template: (obj) => obj.priority || '' 
                 }
             ];
         },
-        setTasksComfig() {
+        setTasksConfig() {
+            gantt.config.types.user    = 'user';
             gantt.config.fit_tasks     = true; 
-            gantt.config.duration_unit = 'hour';//an hour
+            gantt.config.duration_unit = 'hour';
             gantt.config.duration_step = 1; 
             gantt.templates.task_text  = (start,end,task) => {
-                if(task.state === 'user') return `${task.time_sum}` ; 
-                if (task.state === 'proj') return `${task.time_sum}`;
-                else return `${task.time - task.time_used}`;
+                if(task.time && task.time_used) {
+                    return  `<div class="gantt__row-label">(${task.time} - ${task.time_used})</div>`;
+                }
+                return '';
             };
+               
+            gantt.templates.task_class = function (start, end, task) {
+                task.type = gantt.config.types[task.type];
+                if(task.type === gantt.config.types.user) {
+                    return 'gantt__user-scale';
+                }
+                if(task.type === gantt.config.types.project) {
+                    return 'gantt__project-scale';
+                }
+                return 'gantt__task-scale';
+            };
+            // gantt.config.type_renderers[gantt.config.types.user] = function (task, defaultRender) {
+            //     var main_el = document.createElement('div');
+            //     main_el.setAttribute(gantt.config.task_attribute, task.id);
+            //     var size          = gantt.getTaskPosition(task);
+            //     main_el.innerHTML = [
+            //         '<div class=\'project-left\'></div>',
+            //         '<div class=\'project-right\'></div>'
+            //     ].join('');
+            //     main_el.className = 'custom-project';
+ 
+            //     main_el.style.left  = size.left + 'px';
+            //     main_el.style.top   = size.top + 7 + 'px';
+            //     main_el.style.width = size.width + 'px';
+ 
+            //     return main_el;
+            // };
+            // gantt.config.type_renderers[gantt.config.types.project] = function (task,defaultRender) {
+            //     var main_el       = document.createElement('div');
+            //     var size          = gantt.getTaskPosition(task);
+            //     main_el.innerHTML = [
+            //         '<div class=\'project-left\'></div>',
+            //         '<div class=\'project-right\'></div>'
+            //     ].join('');
+            //     main_el.className = 'custom-project';
+ 
+            //     main_el.style.left  = size.left + 'px';
+            //     main_el.style.top   = size.top + 7 + 'px';
+            //     main_el.style.width = size.width + 'px';
+ 
+            //     return main_el;
+            // };
         },
         setRowsConfig() {
             gantt.config.layout = {
@@ -163,35 +212,74 @@ export default {
         
             gantt.getMarker(markerId);
         },
-
         async createRequest(requestData)  {
             const { payload } = requestData;
             const { data }    = payload 
                 ? await axios.post(requestData.url, payload)
                 : await axios.get(requestData.url);
             return data;
-        }
+        },
+
     }
 };
 </script>
-<style>
+<style lang="scss">
+@import "~dhtmlx-gantt/codebase/dhtmlxgantt.css";
 body{
     margin: 0;
 
 padding: 0;
 }
-.gantt_layout_root{
-    height: 500px!important;
+.gantt{
+    height: 380px;
+    &_link_control{
+        display: none;
+    }
+    &_task_progress_drag{
+        display: none!important;
+    }
+    &_task_content{
+        overflow: visible;
+    }
+    // &_task_cell{
+    //     border: 1px solid rgba(128, 128, 128, 0.466);
+    // }
+    &__user-scale{
+        border: none;
+
+background-color: transparent;
+    }
+    &__project-scale{
+        border:1px solid rgba(109, 108, 108, 0.8);
+
+background: rgba(109, 108, 108, 0.2) !important;
+
+        .gantt_task_progress{
+            background: #4aaec2;
+        }
+    }
+    &__task-scale{
+        border:1px solid #3dbad38e;
+
+background: #3dbad363 !important;
+
+        .gantt_task_progress {
+            background: #54d3ec;
+        }
+    }
+    &__row-label{
+        position: absolute;
+
+transform: translateX(-110%);
+
+color: black;
+    }
+    &__weekend{
+        background: rgba(238, 149, 149, 0.24) !important;
+    }
+    &__workday{
+        background: rgba(109, 108, 108, 0.02) !important;
+    }
 }
-.weekend{
-    background: rgba(238, 149, 149, 0.24) !important;
-}
-.gantt_link_control{
-    display: none;
-}
-.gantt_task_progress_drag{
-    display: none!important;
-}
-@import "~dhtmlx-gantt/codebase/dhtmlxgantt.css";
 
 </style>

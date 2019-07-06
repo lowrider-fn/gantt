@@ -1,7 +1,7 @@
 [
         {
             "id"      : 1,
-            "state"   : "user",
+            "type"   : "user",
             "priority": "",
             "parentId": null,
             "text"    : "Пользователь",
@@ -9,15 +9,17 @@
         },
         {
             "id"      : 21001,
-            "state"   : "proj",
+            "type"   : "project",
             "parent"  : 1,
             "text"    : "Фонд Потанина",
-            "time_sum": 10
+            "progress"  : 0.5,
+            "time": 18,
+            "time_used" : 5.2
         },
         {
             "id"        : 45,
             "parent"    : 21001,
-            "state"     : "task",
+            "type"     : "task",
             "text"      : "Англ версия. Поправить тайтл",
             "duration"  : 3,
             "priority"  : 1,
@@ -30,6 +32,7 @@
         {
             "id"        : 2400,
             "parent"    : 21001,
+            "type"     : "task",
             "text"      : "поправить слайдер истории в мобиле ipod iphone",
             "duration"  : 1,
             "priority"  : 1,
