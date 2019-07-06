@@ -225,11 +225,18 @@ export default {
 </script>
 <style lang="scss">
 @import "~dhtmlx-gantt/codebase/dhtmlxgantt.css";
+// @import "~dhtmlx-gantt/codebase/skins/dhtmlxgantt_material.css";
+// @import "~dhtmlx-gantt/codebase/skins/dhtmlxgantt_skyblue.css";
+// @import "~dhtmlx-gantt/codebase/skins/dhtmlxgantt_broadway.css";
+// @import "~dhtmlx-gantt/codebase/skins/dhtmlxgantt_contrast_black.css";
+// @import "~dhtmlx-gantt/codebase/skins/dhtmlxgantt_contrast_white.css";
+// @import "~dhtmlx-gantt/codebase/skins/dhtmlxgantt_meadow.css";
+// @import "~dhtmlx-gantt/codebase/skins/dhtmlxgantt_terrace.css";
 body{
     margin: 0;
 
 padding: 0;
-}
+
 .gantt{
     height: 380px;
     &_link_control{
@@ -241,21 +248,24 @@ padding: 0;
     &_task_content{
         overflow: visible;
     }
+    &_task_line.gantt_selected{
+        box-shadow: 0 0 5px #299cb4!important;
+    }
     // &_task_cell{
     //     border: 1px solid rgba(128, 128, 128, 0.466);
     // }
     &__user-scale{
         border: none;
-
+box-shadow: none!important;
 background-color: transparent;
     }
     &__project-scale{
-        border:1px solid rgba(109, 108, 108, 0.8);
+        border:1px solid rgba(109, 108, 108, 0.8)!important;
 
 background: rgba(109, 108, 108, 0.2) !important;
 
         .gantt_task_progress{
-            background: #4aaec2;
+            background: #4aaec2!important;
         }
     }
     &__task-scale{
@@ -264,7 +274,7 @@ background: rgba(109, 108, 108, 0.2) !important;
 background: #3dbad363 !important;
 
         .gantt_task_progress {
-            background: #54d3ec;
+            background-color: #54d3ec!important;
         }
     }
     &__row-label{
@@ -280,6 +290,6 @@ color: black;
     &__workday{
         background: rgba(109, 108, 108, 0.02) !important;
     }
-}
+}}
 
 </style>

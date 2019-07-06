@@ -2,6 +2,7 @@ import Vue from 'vue';
 import App from './App.vue';
 import 'dhtmlx-gantt/codebase/locale/locale_ru.js';
 import 'dhtmlx-gantt/codebase/ext/dhtmlxgantt_marker.js';
+import 'dhtmlx-gantt/codebase/ext/dhtmlxgantt_smart_rendering.js';
 Vue.config.productionTip = false;
 
 new Vue({
