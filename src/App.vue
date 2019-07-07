@@ -13,7 +13,7 @@
                     {{ state }}
                 </button>
             </div>
-            <div ref="gantt" class="gantt"></div>
+            <div :class="`gantt--${stateScale}`" ref="gantt" class="gantt"></div>
         </div>
     </div>
 </template>
@@ -125,13 +125,6 @@ export default {
             gantt.config.fit_tasks     = true; 
             gantt.config.duration_unit = 'hour';
             gantt.config.duration_step = 1; 
-            gantt.templates.task_text  = (start,end,task) => {
-            //     if(task.time && task.time_used) {
-            //         return  `<div class="gantt__row-label">(${task.time} - ${task.time_used})</div>`;
-            //     }
-                console.log(start, end);
-            };
-            
             gantt.templates.task_class = function (start, end, task) {
                 task.type = gantt.config.types[task.type];
                 if(task.type === gantt.config.types.user) return 'gantt__user-scale';
@@ -142,13 +135,34 @@ export default {
             gantt.templates.leftside_text = function (start, end, task) {
                 if(task.time && task.time_used) return `(${task.time} - ${task.time_used})`;
             };
-            
+            this.setWorkLoadTemplates();
             gantt.templates.task_cell_class = (task, date) => this.setWorkDays(date);
         },
         setWorkDays(date) {
             date = date.getDay();
             if(this.stateScale === 'day' && (date === 0 || date === 6)) return 'gantt__weekend';
             return 'gantt__workday';
+        },
+        setWorkLoadTemplates() {
+            gantt.templates.task_text = (start,end,task) => {
+                const { loads } = task;
+
+                let loadHtml = ``;
+                
+                loads[this.stateScale].forEach(load => {
+                    const className = load > 7 
+                        ? 'error' 
+                            : load === 7 
+                                ? 'success' 
+                                    : ''
+                    loadHtml += `<div class="gantt__load-cell ${className} ">${load || ''}</div>`;
+                });
+                return loadHtml;
+                //     if(task.time && task.time_used) 
+                //         return  `<div class="gantt__row-label ">(${task.time} - ${task.time_used})</div>`;
+                //     }
+                // console.log(start, end);
+            };
         },
         setRowsConfig() {
             gantt.config.layout = {
@@ -200,6 +214,20 @@ body{
 padding: 0;
 
 .gantt{
+    &--day{
+        .gantt__load-cell{
+width: 70px;
+        }
+    }
+    &--week{
+        .gantt__load-cell{
+        width: 169px;}
+    }
+    &--month{
+        .gantt__load-cell{
+     
+            width: 254px
+    }   }
     height: 380px;
     &_link_control{
         display: none;
@@ -209,6 +237,8 @@ padding: 0;
     }
     &_task_content{
         overflow: visible;
+        color: black;
+        text-align: left;
     }
     &_task_line.gantt_selected{
         box-shadow: 0 0 5px #299cb4!important;
@@ -250,5 +280,16 @@ color: black;
         background: rgba(109, 108, 108, 0.02) !important;
     }
 }}
+.gantt__load-cell{
+    display: inline-block;
+    text-align: center;
+    &.success{
+        color: #28a745;font-weight: 700;
+    }
+    &.error{
+        color: #dc3545;font-weight: 700;
+        
+    }
+}
 
 </style>
