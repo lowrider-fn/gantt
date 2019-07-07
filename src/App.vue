@@ -47,7 +47,6 @@ export default {
     },
     methods: {
         initGantt(tasks) {
-            this.setWorkDays();
             this.tasks.data = tasks;
             this.setColumnsConfig();
             this.setColumnsConfig();
@@ -55,7 +54,6 @@ export default {
             this.setRowsConfig();
             this.setMarkerToday();
             this.setScaleDay();
-           
             gantt.config.readonly = this.isReadonly;
             gantt.init(this.$refs.gantt);
             gantt.parse(this.tasks);
@@ -92,22 +90,17 @@ export default {
             }
             gantt.render();
         },
-        setWorkDays() {
-            gantt.templates.task_cell_class = (task,date) => {
-                date = date.getDay();
-                if(this.stateScale === 'day' && (date === 0 || date === 6)) return 'gantt__weekend';
-                return 'gantt__workday';
-            };
-        },
+
         setScaleDay() {
             gantt.config.scale_unit = 'day';
             gantt.config.step       = 1;
             gantt.config.date_scale = '%D, %d';
 
-            gantt.config.subscales    = [
+            gantt.config.subscales           = [
                 {unit : 'month', step : 1, date : '%F, %Y'}
             ];
-            gantt.config.scale_height = 60;
+            gantt.config.scale_height        = 60;
+            gantt.templates.scale_cell_class =  (date) => this.setWorkDays(date);
         },
         setColumnsConfig() {
             gantt.config.columns = [
@@ -133,53 +126,29 @@ export default {
             gantt.config.duration_unit = 'hour';
             gantt.config.duration_step = 1; 
             gantt.templates.task_text  = (start,end,task) => {
-                if(task.time && task.time_used) {
-                    return  `<div class="gantt__row-label">(${task.time} - ${task.time_used})</div>`;
-                }
-                return '';
+            //     if(task.time && task.time_used) {
+            //         return  `<div class="gantt__row-label">(${task.time} - ${task.time_used})</div>`;
+            //     }
+                console.log(start, end);
             };
-               
+            
             gantt.templates.task_class = function (start, end, task) {
                 task.type = gantt.config.types[task.type];
-                if(task.type === gantt.config.types.user) {
-                    return 'gantt__user-scale';
-                }
-                if(task.type === gantt.config.types.project) {
-                    return 'gantt__project-scale';
-                }
+                if(task.type === gantt.config.types.user) return 'gantt__user-scale';
+                if(task.type === gantt.config.types.project) return 'gantt__project-scale';
                 return 'gantt__task-scale';
             };
-            // gantt.config.type_renderers[gantt.config.types.user] = function (task, defaultRender) {
-            //     var main_el = document.createElement('div');
-            //     main_el.setAttribute(gantt.config.task_attribute, task.id);
-            //     var size          = gantt.getTaskPosition(task);
-            //     main_el.innerHTML = [
-            //         '<div class=\'project-left\'></div>',
-            //         '<div class=\'project-right\'></div>'
-            //     ].join('');
-            //     main_el.className = 'custom-project';
- 
-            //     main_el.style.left  = size.left + 'px';
-            //     main_el.style.top   = size.top + 7 + 'px';
-            //     main_el.style.width = size.width + 'px';
- 
-            //     return main_el;
-            // };
-            // gantt.config.type_renderers[gantt.config.types.project] = function (task,defaultRender) {
-            //     var main_el       = document.createElement('div');
-            //     var size          = gantt.getTaskPosition(task);
-            //     main_el.innerHTML = [
-            //         '<div class=\'project-left\'></div>',
-            //         '<div class=\'project-right\'></div>'
-            //     ].join('');
-            //     main_el.className = 'custom-project';
- 
-            //     main_el.style.left  = size.left + 'px';
-            //     main_el.style.top   = size.top + 7 + 'px';
-            //     main_el.style.width = size.width + 'px';
- 
-            //     return main_el;
-            // };
+
+            gantt.templates.leftside_text = function (start, end, task) {
+                if(task.time && task.time_used) return `(${task.time} - ${task.time_used})`;
+            };
+            
+            gantt.templates.task_cell_class = (task, date) => this.setWorkDays(date);
+        },
+        setWorkDays(date) {
+            date = date.getDay();
+            if(this.stateScale === 'day' && (date === 0 || date === 6)) return 'gantt__weekend';
+            return 'gantt__workday';
         },
         setRowsConfig() {
             gantt.config.layout = {
@@ -204,7 +173,7 @@ export default {
             };
         },
         setMarkerToday() {
-            var markerId = gantt.addMarker({
+            const markerId = gantt.addMarker({
                 start_date: new Date(),
                 css       : 'today',
             // title     : new Date().toString()
@@ -225,13 +194,6 @@ export default {
 </script>
 <style lang="scss">
 @import "~dhtmlx-gantt/codebase/dhtmlxgantt.css";
-// @import "~dhtmlx-gantt/codebase/skins/dhtmlxgantt_material.css";
-// @import "~dhtmlx-gantt/codebase/skins/dhtmlxgantt_skyblue.css";
-// @import "~dhtmlx-gantt/codebase/skins/dhtmlxgantt_broadway.css";
-// @import "~dhtmlx-gantt/codebase/skins/dhtmlxgantt_contrast_black.css";
-// @import "~dhtmlx-gantt/codebase/skins/dhtmlxgantt_contrast_white.css";
-// @import "~dhtmlx-gantt/codebase/skins/dhtmlxgantt_meadow.css";
-// @import "~dhtmlx-gantt/codebase/skins/dhtmlxgantt_terrace.css";
 body{
     margin: 0;
 
@@ -251,9 +213,6 @@ padding: 0;
     &_task_line.gantt_selected{
         box-shadow: 0 0 5px #299cb4!important;
     }
-    // &_task_cell{
-    //     border: 1px solid rgba(128, 128, 128, 0.466);
-    // }
     &__user-scale{
         border: none;
 box-shadow: none!important;
