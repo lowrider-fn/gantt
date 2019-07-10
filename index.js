@@ -9,7 +9,7 @@ var app = express();
 
 app.use('/', express.static('dist'));
 
-app.listen(3001, function () {
+app.listen(3000, function () {
 });
 // app.get('/renault-landing/build/main.html', function (req, res) {
 //   // let file = fs.readFileSync('index.html');

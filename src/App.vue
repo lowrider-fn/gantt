@@ -3,7 +3,7 @@
         <div v-if="!isInit">{{ 'preloader' }}</div>
         <div class="container">
             <div v-if="errorText">{{ errorText }}</div>
-            <div v-if="tasks.data">
+            <div >
                 <button v-for="(state,i) in statesScale"
                         :key="i" 
                         :id="state"
@@ -12,8 +12,15 @@
                 >
                     {{ state }}
                 </button>
+                <button @click="save()" type="button">save</button>
+                <button @click="cancel()" type="button">cancel</button>
             </div>
-            <div :class="`gantt--${stateScale}`" ref="gantt" class="gantt"></div>
+            <div 
+                :class="`gantt--${stateScale}`" 
+                ref="gantt"
+                class="gantt"
+            >
+            </div>
         </div>
     </div>
 </template>
@@ -26,6 +33,7 @@ import { gantt } from 'dhtmlx-gantt';
 export default {
     name: 'app',
     data: () => ({
+        dataTasks  : null,
         errorText  : '',
         tasks      : {data : null},
         isReadonly : false,
@@ -34,7 +42,7 @@ export default {
     }),
     computed: {
         isInit() {
-            return this.tasks.data;
+            return this.tasks.data || this.errorText;
         }
     },
     mounted() {
@@ -47,16 +55,22 @@ export default {
     },
     methods: {
         initGantt(tasks) {
+            this.dataTasks  = tasks;
             this.tasks.data = tasks;
             this.setColumnsConfig();
             this.setColumnsConfig();
             this.setTasksConfig();
-            this.setRowsConfig();
+            this.setLayoutConfig();
             this.setMarkerToday();
             this.setScaleDay();
-            gantt.config.readonly = this.isReadonly;
+            gantt.config.readonly            = this.isReadonly;
+            gantt.config.details_on_dblclick = false;
             gantt.init(this.$refs.gantt);
             gantt.parse(this.tasks);
+        },
+        save() {},
+        cancel() {
+
         },
         setScaleConfig(state) {
             this.stateScale = state;
@@ -164,7 +178,7 @@ export default {
                 // console.log(start, end);
             };
         },
-        setRowsConfig() {
+        setLayoutConfig() {
             gantt.config.layout = {
                 css : 'gantt_container',
                 cols: [
@@ -172,7 +186,9 @@ export default {
                         width    : 500,
                         min_width: 300,
                         rows     : [
-                            {view : 'grid', scrollX : 'gridScroll', scrollable : true, scrollY : 'scrollVer'}, 
+                            {view      : 'grid', scrollX   : 'gridScroll', scrollable: true, scrollY   : 'scrollVer',
+                                cols      : [
+                                    { gravity : 0 }]  } ,
                             {view : 'scrollbar', id : 'gridScroll'}  
                         ]
                     },
@@ -181,8 +197,7 @@ export default {
                             {view : 'timeline', scrollX : 'scrollHor', scrollY : 'scrollVer'},
                             {view : 'scrollbar', id : 'scrollHor'}
                         ]
-                    },
-                    {view : 'scrollbar', id : 'scrollVer'}
+                    }
                 ],
             };
         },
@@ -247,6 +262,7 @@ width: 70px;
         border: none;
 box-shadow: none!important;
 background-color: transparent;
+pointer-events: none,
     }
     &__project-scale{
         border:1px solid rgba(109, 108, 108, 0.8)!important;
