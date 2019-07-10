@@ -27,8 +27,10 @@
 
 <script>
 
-import axios     from 'axios';
-import { gantt } from 'dhtmlx-gantt';
+import axios          from 'axios';
+import { gantt }      from 'dhtmlx-gantt';
+import clonedeep      from 'lodash.clonedeep';
+import isequal        from 'lodash.isequal';
 
 export default {
     name: 'app',
@@ -55,67 +57,112 @@ export default {
     },
     methods: {
         initGantt(tasks) {
-            this.dataTasks  = tasks;
+            this.dataTasks  = clonedeep(tasks);
             this.tasks.data = tasks;
-            this.setColumnsConfig();
-            this.setColumnsConfig();
+
             this.setTasksConfig();
             this.setLayoutConfig();
             this.setMarkerToday();
-            this.setScaleDay();
-            gantt.config.readonly            = this.isReadonly;
+
             gantt.config.details_on_dblclick = false;
+            
             gantt.init(this.$refs.gantt);
             gantt.parse(this.tasks);
         },
-        save() {},
+        disableEditBtn() {},
+        save() {
+            // this.createRequest({url : '/get/data.json'})
+            //     .then(tasks => this.initGantt(tasks))
+            //     .catch(error => {
+            //         console.error(error);
+            //         this.errorText = error.text || 'Неизвестная ошибка' ;
+            //     });
+        },
         cancel() {
-
+            this.tasks.data = clonedeep(this.dataTasks);
         },
-        setScaleConfig(state) {
-            this.stateScale = state;
-            switch (state) {
-            case 'day':
-                this.setScaleDay();
-                break;
-            case 'week':
-                gantt.config.scale_unit    = 'month';
-                gantt.config.date_scale    = '%F, %Y';
-                gantt.templates.date_scale = null;
- 
-                gantt.config.scale_height = 60;
- 
-                gantt.config.subscales = [
-                    {unit : 'week', step : 1, date : '%W'}
-                ];
- 
-                break;
-            case 'month':
-                gantt.config.scale_unit    = 'year';
-                gantt.config.date_scale    = '%Y';
-                gantt.templates.date_scale = null;
-                gantt.config.scale_height  = 60;
- 
-                gantt.config.subscales = [
-                    {unit : 'month', step : 1, date : '%M'}
-                ];
- 
-                break;
-            }
-            gantt.render();
+        setMarkerToday() {
+            const markerId = gantt.addMarker({
+                start_date: new Date(),
+                css       : 'today',
+            // title     : new Date().toString()
+            });
+            gantt.getMarker(markerId);
+        },
+        //task config
+        setTasksConfig() {
+            gantt.config.types.user    = 'user';
+            gantt.config.fit_tasks     = true; 
+            gantt.config.duration_unit = 'week';
+            gantt.config.duration_step = 1; 
+
+            gantt.templates.task_class = function (start, end, task) {
+                task.type = gantt.config.types[task.type];
+                if(task.type === gantt.config.types.user) return 'gantt__user-scale';
+                if(task.type === gantt.config.types.project) return 'gantt__project-scale';
+                return 'gantt__task-scale';
+            };
+        
+            gantt.templates.leftside_text = function (start, end, task) {
+                if(task.time && task.time_used) return `(${task.time} - ${task.time_used})`;
+            };
+
+            gantt.templates.task_cell_class = (task, date) => this.setWorkDays(date);
+            this.setWorkLoadTemplates(); 
+        },
+        setWorkLoadTemplates() {
+            gantt.templates.task_text = (start,end,task) => {
+                const loads = task.loads[this.stateScale];
+
+                let loadHtml = ``;
+                loads.forEach(load => {
+                    const className = load > 7 
+                        ? 'error' : load === 7 
+                            ? 'success' : ''
+                    loadHtml += `<div  class="gantt__load-cell ${className} ">${load || ''}</div>`;
+                });
+                return loadHtml;
+            };
         },
 
-        setScaleDay() {
-            gantt.config.scale_unit = 'day';
-            gantt.config.step       = 1;
-            gantt.config.date_scale = '%D, %d';
-
-            gantt.config.subscales           = [
-                {unit : 'month', step : 1, date : '%F, %Y'}
-            ];
-            gantt.config.scale_height        = 60;
-            gantt.templates.scale_cell_class =  (date) => this.setWorkDays(date);
+        setResoursesConfig() {
+            var resourcesStore = gantt.createDatastore({
+                name: 'resource',
+                initItem(item) {
+                    item.id = item.key || gantt.uid();
+                    return item;
+                }
+            });
+            resourcesStore.parse(this.tasks);
+            // var tasksStore = gantt.getDatastore('task');
         },
+
+        setLayoutConfig() {
+            gantt.config.layout = {
+                css : 'gantt_container',
+                cols: [
+                    {
+                        width    : 500,
+                        min_width: 300,
+                        config   : this.setColumnsConfig(),
+                        rows     : [
+                            {view : 'grid', scrollX : 'gridScroll', scrollable : true, scrollY : 'scrollVer'  } ,
+                            {view : 'scrollbar', id : 'gridScroll'}  
+                        ]
+                    },
+                    {
+                        rows: [
+                            {view : 'timeline', scrollX : 'scrollHor', scrollY : 'scrollVer', config : this.setScaleDay()},
+
+                            {view     : 'timeline', id       : 'resourceTimeline', scrollX  : 'scrollHor', layer    : this.setResoursesConfig(),
+                                bind     : 'resource', bindLinks: null,scrollY  : 'resourceVScroll'},
+                            {view : 'scrollbar', id : 'scrollHor'}
+                        ]
+                    }
+                ],
+            };
+        },
+        //left grid config
         setColumnsConfig() {
             gantt.config.columns = [
                 {
@@ -134,82 +181,61 @@ export default {
                 }
             ];
         },
-        setTasksConfig() {
-            gantt.config.types.user    = 'user';
-            gantt.config.fit_tasks     = true; 
-            gantt.config.duration_unit = 'hour';
-            gantt.config.duration_step = 1; 
-            gantt.templates.task_class = function (start, end, task) {
-                task.type = gantt.config.types[task.type];
-                if(task.type === gantt.config.types.user) return 'gantt__user-scale';
-                if(task.type === gantt.config.types.project) return 'gantt__project-scale';
-                return 'gantt__task-scale';
-            };
-
-            gantt.templates.leftside_text = function (start, end, task) {
-                if(task.time && task.time_used) return `(${task.time} - ${task.time_used})`;
-            };
-            this.setWorkLoadTemplates();
-            gantt.templates.task_cell_class = (task, date) => this.setWorkDays(date);
+        //calendar grid config
+        setScaleConfig(state) {
+            gantt.config.smart_scales = true;
+            this.stateScale           = state;
+           
+            switch (state) {
+            case 'day':
+                this.setScaleDay();
+                break;
+            case 'week':
+                gantt.config.scale_unit    = 'month';
+                gantt.config.date_scale    = '%F, %Y';
+                gantt.templates.date_scale = null;
+ 
+                gantt.config.scale_height = 60;
+ 
+                gantt.config.subscales = [
+                    {unit : 'week', step : 1, date : '%W'}
+                ];
+                gantt.config.readonly  = true;
+                break;
+            case 'month':
+                gantt.config.scale_unit    = 'year';
+                gantt.config.date_scale    = '%Y';
+                gantt.templates.date_scale = null;
+                gantt.config.scale_height  = 60;
+ 
+                gantt.config.subscales = [
+                    {unit : 'month', step : 1, date : '%M'}
+                ];
+                gantt.config.readonly  = true;
+                break;
+            }
+            gantt.render();
+        },
+        setScaleDay() {
+            gantt.config.scale_unit          = 'day';
+            gantt.config.step                = 1;
+            gantt.config.date_scale          = '%d';
+            gantt.config.subscales           = [
+                {unit : 'month', step : 1, date : '%F, %Y'}
+            ];
+            gantt.config.scale_height        = 60;
+            gantt.templates.scale_cell_class =  (date) => this.setWorkDays(date);
+            this.setReadOnly();
         },
         setWorkDays(date) {
             date = date.getDay();
             if(this.stateScale === 'day' && (date === 0 || date === 6)) return 'gantt__weekend';
             return 'gantt__workday';
         },
-        setWorkLoadTemplates() {
-            gantt.templates.task_text = (start,end,task) => {
-                const { loads } = task;
+        setReadOnly() {
+            if (this.isReadonly) gantt.config.readonly = this.isReadonly ;
+        },
 
-                let loadHtml = ``;
-                
-                loads[this.stateScale].forEach(load => {
-                    const className = load > 7 
-                        ? 'error' 
-                            : load === 7 
-                                ? 'success' 
-                                    : ''
-                    loadHtml += `<div class="gantt__load-cell ${className} ">${load || ''}</div>`;
-                });
-                return loadHtml;
-                //     if(task.time && task.time_used) 
-                //         return  `<div class="gantt__row-label ">(${task.time} - ${task.time_used})</div>`;
-                //     }
-                // console.log(start, end);
-            };
-        },
-        setLayoutConfig() {
-            gantt.config.layout = {
-                css : 'gantt_container',
-                cols: [
-                    {
-                        width    : 500,
-                        min_width: 300,
-                        rows     : [
-                            {view      : 'grid', scrollX   : 'gridScroll', scrollable: true, scrollY   : 'scrollVer',
-                                cols      : [
-                                    { gravity : 0 }]  } ,
-                            {view : 'scrollbar', id : 'gridScroll'}  
-                        ]
-                    },
-                    {
-                        rows: [
-                            {view : 'timeline', scrollX : 'scrollHor', scrollY : 'scrollVer'},
-                            {view : 'scrollbar', id : 'scrollHor'}
-                        ]
-                    }
-                ],
-            };
-        },
-        setMarkerToday() {
-            const markerId = gantt.addMarker({
-                start_date: new Date(),
-                css       : 'today',
-            // title     : new Date().toString()
-            });
-        
-            gantt.getMarker(markerId);
-        },
         async createRequest(requestData)  {
             const { payload } = requestData;
             const { data }    = payload 
@@ -251,7 +277,6 @@ width: 70px;
         display: none!important;
     }
     &_task_content{
-        overflow: visible;
         color: black;
         text-align: left;
     }
@@ -307,5 +332,12 @@ color: black;
         
     }
 }
+// .gantt_scale_cell{
+//     width: 40px!important;
+// }
+// .gantt_task_cell {
+//     width: 40px!important;
+
+// }
 
 </style>

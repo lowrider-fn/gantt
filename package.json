@@ -11,6 +11,7 @@
     "core-js": "^2.6.5",
     "dhtmlx-gantt": "^6.1.7",
     "lodash.clonedeep": "^4.5.0",
+    "lodash.isequal": "^4.5.0",
     "ngrok": "^3.2.1",
     "vue": "^2.6.10"
   },
