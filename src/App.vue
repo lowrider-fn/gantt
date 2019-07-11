@@ -16,7 +16,7 @@
             </button>
         
             <div :class="`gantt--${stateScale}`"
-                 ref="gantt" 
+                 ref="gantt"
                  class="gantt"
             >
             </div>
@@ -25,12 +25,12 @@
 </template>
 
 <script>
-import preloader                           from './components/preloader';
-import  { createRequest, setWorkDays }     from '@/helpers';
+import preloader                                               from './components/preloader';
+import  { createRequest, setWorkDays, setRightFormatDate }     from '@/helpers';
 
-import { gantt }                           from 'dhtmlx-gantt';
-import clonedeep                           from 'lodash.clonedeep';
-import isequal                             from 'lodash.isequal';
+import { gantt }                                               from 'dhtmlx-gantt';
+import clonedeep                                               from 'lodash.clonedeep';
+import isequal                                                 from 'lodash.isequal';
 
 export default {
     name      : 'app',
@@ -49,11 +49,11 @@ export default {
             { text : 'Месяц', id : 'month' } 
         ],
         stateScale: 'day',
-        isloading : false,
+        isLoading : false,
     }),
     computed: {
         isInit() {
-            return (this.tasks.data || this.errorText) && !this.isloading;
+            return (this.tasks.data || this.errorText) && !this.isLoading;
         }
     },
     mounted() {
@@ -68,22 +68,58 @@ export default {
                     this.errorText = error.text || 'Неизвестная ошибка' ;
                 });
         },
-        initGantt(tasks) {
+        checkTaskChangesFromServer(task) {
+            this.setIsLoading();
+            createRequest({url : '/get/data.json'})
+                .then(tasks => {
+                    this.setTasksData(tasks);
+                    gantt.parse(this.tasks);
+                    this.setIsLoading();
+                    //not work refresh
+                    
+                    gantt.refreshData();
+                })
+                .catch(error => {
+                    console.error(error);
+                    this.errorEdit = error.text || 'Данные изменения невозможны' ;
+                    this.setIsLoading();
+                    //process error
+                });
+        },
+        setIsLoading() {
+            this.isLoading = !this.isLoading;
+        },
+        setTasksData(tasks) {
             this.dataTasks  = clonedeep(tasks);
             this.tasks.data = tasks;
-            
+        },
+        initGantt(tasks) {
+            this.setTasksData(tasks);
             this.setLayoutConfig();
-
             gantt.init(this.$refs.gantt);
             gantt.parse(this.tasks);
+
+            this.afterTaskDragProcessing();
         },
-        save() {
-            // this.createRequest({url : '/get/data.json'})
-            //     .then(tasks => this.initGantt(tasks))
-            //     .catch(error => {
-            //         console.error(error);
-            //         this.errorText = error.text || 'Неизвестная ошибка' ;
-            //     });
+
+        afterTaskDragProcessing() {
+            gantt.attachEvent('onAfterTaskDrag', id => {
+                const task    = gantt.getTask(id);
+                const changes = {};
+                changes.id    = task.id; 
+                
+                const newStartDate = setRightFormatDate(task.start_date);
+                const newEndDate   = setRightFormatDate(task.end_date);
+
+                if(this.dataTasks.start_date !== newStartDate) {
+                    changes.start_date = newStartDate; 
+                } 
+                if(this.dataTasks.end_date !== newEndDate) {
+                    changes.end_date = newEndDate; 
+                }
+                
+                if(Object.keys(changes).length > 1) this.checkTaskChangesFromServer(changes);
+            });
         },
         cancel() {
             this.tasks.data = clonedeep(this.dataTasks);
@@ -118,7 +154,7 @@ export default {
                                 view   : 'timeline',
                                 scrollX: 'scrollHor',
                                 scrollY: 'scrollVer', 
-                                config : this.setScaleConfig(this.stateScale)
+                                config : this.setScaleDay()
                             },
                             {
                                 view: 'scrollbar', 
@@ -129,12 +165,10 @@ export default {
                 ],
             };
         },
+        //common config
         setGanttCommonConfig() {
-            gantt.config.details_on_dblclick = false,
-            this.setMarkerToday();
-        },
-        setMarkerToday() {
-            const markerId = gantt.addMarker({
+            gantt.config.details_on_dblclick = false;
+            const markerId                   = gantt.addMarker({
                 start_date: new Date(),
                 css       : 'today',
             });
@@ -201,6 +235,7 @@ export default {
             switch (state) {
             case 'day':
                 this.setScaleDay();
+                gantt.render();
                 break;
             case 'week':
                 this.setScaleWeek();
@@ -219,7 +254,7 @@ export default {
             ];
             gantt.config.scale_height        = 60;
             gantt.templates.scale_cell_class =  (date) => setWorkDays(date, this.stateScale);
-            this.setReadOnly();
+            gantt.config.readonly            = this.isReadonly ;
         },
         setScaleWeek() {
             gantt.config.scale_unit    = 'month';
@@ -246,10 +281,6 @@ export default {
             gantt.config.readonly  = true;
             gantt.render();
         },
-        setReadOnly() {
-            if (this.isReadonly) gantt.config.readonly = this.isReadonly ;
-        },
-
     }
 };
 </script>
