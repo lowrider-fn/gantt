@@ -25,19 +25,22 @@
 </template>
 
 <script>
-import preloader                                               from './components/preloader';
-import  { createRequest, setWorkDays, setRightFormatDate }     from '@/helpers';
+import preloader                                                from './components/preloader';
+import  { createRequest, setWorkDays, setRightFormatDate }      from '@/helpers';
 
-import { gantt }                                               from 'dhtmlx-gantt';
-import clonedeep                                               from 'lodash.clonedeep';
-import isequal                                                 from 'lodash.isequal';
+import { gantt }                                                from 'dhtmlx-gantt';
+import clonedeep                                                from 'lodash.clonedeep';
+import debounce                                                 from 'lodash.debounce';
+import { mixin as clickaway }                                   from 'vue-clickaway';
+import { setTimeout }                                           from 'timers';
 
 export default {
     name      : 'app',
     components: {
         preloader
     },
-    data: () => ({
+    mixins: [clickaway],
+    data  : () => ({
         dataTasks  : null,
         errorText  : '',
         errorEdit  : '',
@@ -58,6 +61,16 @@ export default {
     },
     mounted() {
         this.getTasksData();
+        // console.log(this.$vue);
+        
+        // this.$vue.component('template-from-server', {
+        //     template: templateFromServer,
+        //     methods : {
+        //         clickMe() {
+        //             console.log('click');
+        //         }            
+        //     }
+        // });   
     },
     methods: {
         getTasksData() {
@@ -70,7 +83,7 @@ export default {
         },
         checkTaskChangesFromServer(task) {
             this.setIsLoading();
-            createRequest({url : '/get/data.json'})
+            createRequest({url : '/get/data.jso'})
                 .then(tasks => {
                     this.setTasksData(tasks);
                     gantt.parse(this.tasks);
@@ -82,10 +95,30 @@ export default {
                 .catch(error => {
                     console.error(error);
                     this.errorEdit = error.text || 'Данные изменения невозможны' ;
+                    
                     this.setIsLoading();
                     //process error
                 });
         },
+        checkWorkloadChangesFromServer: debounce(function (task) {
+            this.setIsLoading();
+            createRequest({url : '/get/data.jso'})
+                .then(tasks => {
+                    this.setTasksData(tasks);
+                    gantt.parse(this.tasks);
+                    this.setIsLoading();
+                    //not work refresh
+                    
+                    gantt.refreshData();
+                })
+                .catch(error => {
+                    console.error(error);
+                    this.errorEdit = error.text || 'Данные изменения невозможны' ;
+                    
+                    this.setIsLoading();
+                    //process error
+                },200);
+        }),
         setIsLoading() {
             this.isLoading = !this.isLoading;
         },
@@ -100,10 +133,14 @@ export default {
             gantt.parse(this.tasks);
 
             this.afterTaskDragProcessing();
+            setTimeout(() => {
+                this.afterEditWorkloadProcessing(); },5000);
         },
 
         afterTaskDragProcessing() {
-            gantt.attachEvent('onAfterTaskDrag', id => {
+            gantt.attachEvent('onAfterTaskDrag', (id, mode, e) => {
+                console.log(id, mode, e);
+                
                 const task    = gantt.getTask(id);
                 const changes = {};
                 changes.id    = task.id; 
@@ -120,6 +157,18 @@ export default {
                 
                 if(Object.keys(changes).length > 1) this.checkTaskChangesFromServer(changes);
             });
+        },
+        afterEditWorkloadProcessing() {
+            const workloads = document.getElementsByClassName('js-workload');
+            for(let i = 0 ; i < workloads.length; i++) {
+                workloads[i].addEventListener('keydown',(e) => {
+                    e.preventDefault();
+                    // const onlyNumbers = /^[1-7]$/;
+                    // console.log(e);
+                    // if(!onlyNumbers.test(e.target.key)) return false;
+                    this.checkWorkloadChangesFromServer();
+                });
+            }
         },
         cancel() {
             this.tasks.data = clonedeep(this.dataTasks);
@@ -217,17 +266,28 @@ export default {
         setWorkLoadTemplates() {
             gantt.templates.task_text = (start,end,task) => {
                 const loads = task.loads[this.stateScale];
-
-                let loadHtml = ``;
-                loads.forEach(load => {
-                    const className = load > 7 
-                        ? 'error' : load === 7 
-                            ? 'success' : ''
-                    loadHtml += `<div  class="gantt__load-cell ${className} ">${load || ''}</div>`;
-                });
-                return loadHtml;
+                return this.createWorkLoadCell(loads,task);
             };
         },
+        createWorkLoadCell(loads,task) {
+            let loadHtml     = ``;
+            const isReadonly = this.isReadonly || task.type !== 'task' ? 'readonly' : '';
+            loads.forEach((load,i) => {
+                const className = load > 7 
+                    ? 'error' : load === 7 
+                        ? 'success' : '';
+                            
+                loadHtml += `<input id="${task.id}"
+                                    index="${i}"
+                                    value="${load || ''}" 
+                                    ${isReadonly} 
+                                    type="number" 
+                                    class="js-workload gantt__load-cell ${className}"
+                            >`;
+            });
+            return loadHtml;
+        },
+        
         //right grid config
         setScaleConfig(state) {
             gantt.config.smart_scales = true;
