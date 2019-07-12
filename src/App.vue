@@ -98,8 +98,6 @@ export default {
                     gantt.parse(this.tasks);
                     this.setIsLoading();
                     //not work refresh
-                    
-                    gantt.refreshData();
                 })
                 .catch(error => {
                     console.error(error);
@@ -154,18 +152,16 @@ export default {
                 workloads[i].addEventListener('input',(e) => {
                     // e.preventDefault();
                     // const onlyNumbers = /^[1-7]$/;
-                    // console.log(e);
+                    console.log(e);
                     // if(!onlyNumbers.test(e.target.key)) return false;
                     this.checkWorkloadChangesFromServer();
                 });
             }
         },
-        cancel() {
-            this.tasks.data = clonedeep(this.dataTasks);
-        },
                 
         setLayoutConfig() {
             gantt.config.layout = {
+                
                 css   : 'gantt_container',
                 config: this.setGanttCommonConfig(),
                 cols  : [
@@ -195,6 +191,16 @@ export default {
                                 scrollY: 'scrollVer', 
                                 config : this.setScaleDay()
                             },
+                            // {
+                            //     // config: resourceConfig,
+                            //     cols: [
+                            //         {view : 'resourceGrid', group : 'grids', width : 435, scrollY : 'resourceVScroll'},
+                            //         {resizer : true, width : 1},
+                            //         {view : 'resourceTimeline', scrollX : 'scrollHor', scrollY : 'resourceVScroll'},
+                            //         {view : 'scrollbar', id : 'resourceVScroll', group : 'vertical'}
+                            //     ],
+                            //     gravity: 1
+                            // },
                             {
                                 view: 'scrollbar', 
                                 id  : 'scrollHor'
@@ -261,7 +267,7 @@ export default {
         },
         createWorkLoadCell(loads,task) {
             let loadHtml     = ``;
-            const isReadonly = this.isReadonly || task.type !== 'task' ? 'readonly' : '';
+            const isReadonly = this.isReadonly || (task.type !== 'task' || this.stateScale !== 'day') ? 'readonly' : '';
             loads.forEach((load,i) => {
                 const className = load > 7 
                     ? 'error' : load === 7 
@@ -302,7 +308,7 @@ export default {
                 {unit : 'month', step : 1, date : '%F, %Y'}
             ];
             gantt.config.scale_height        = 60;
-            gantt.templates.scale_cell_class =  (date) => setWorkDays(date, this.stateScale);
+            gantt.templates.scale_cell_class = (date) => setWorkDays(date, this.stateScale);
             gantt.config.readonly            = this.isReadonly ;
         },
         setScaleWeek() {
