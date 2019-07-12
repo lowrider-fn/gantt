@@ -61,16 +61,6 @@ export default {
     },
     mounted() {
         this.getTasksData();
-        // console.log(this.$vue);
-        
-        // this.$vue.component('template-from-server', {
-        //     template: templateFromServer,
-        //     methods : {
-        //         clickMe() {
-        //             console.log('click');
-        //         }            
-        //     }
-        // });   
     },
     methods: {
         getTasksData() {
@@ -161,8 +151,8 @@ export default {
         afterEditWorkloadProcessing() {
             const workloads = document.getElementsByClassName('js-workload');
             for(let i = 0 ; i < workloads.length; i++) {
-                workloads[i].addEventListener('keydown',(e) => {
-                    e.preventDefault();
+                workloads[i].addEventListener('input',(e) => {
+                    // e.preventDefault();
                     // const onlyNumbers = /^[1-7]$/;
                     // console.log(e);
                     // if(!onlyNumbers.test(e.target.key)) return false;
@@ -281,7 +271,6 @@ export default {
                                     index="${i}"
                                     value="${load || ''}" 
                                     ${isReadonly} 
-                                    type="number" 
                                     class="js-workload gantt__load-cell ${className}"
                             >`;
             });
