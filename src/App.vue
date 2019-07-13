@@ -111,9 +111,8 @@ export default {
             this.setIsLoading();
             createRequest({url : '/get/data.jso'})
                 .then(tasks => {
-                    // this.setTasksData(tasks);
-                    // gantt.parse(this.tasks);
                     this.setIsLoading();
+                    this.createHttpMessage(true);
                     //not work refresh
                 })
                 .catch(error => {
@@ -124,6 +123,7 @@ export default {
                     console.log('undo call');
                     
                     this.setIsLoading();
+                    this.createHttpMessage(false);
                     //process error
                 });
         },
@@ -153,21 +153,29 @@ export default {
             this.setIsLoading();
             createRequest({url : '/get/data.jso'})
                 .then(tasks => {
-                    this.setTasksData(tasks);
-                    gantt.parse(this.tasks);
                     this.setIsLoading();
                     //not work refresh
+                    this.createHttpMessage(true);
                 })
                 .catch(error => {
                     console.error(error);
                     this.errorEdit = error.text || 'Данные изменения невозможны' ;
                     
                     this.setIsLoading();
+                    this.createHttpMessage(false);
                     //process error
                 },200);
         }),     
         setIsLoading() {
             this.isLoading = !this.isLoading;
+        },
+        //create http message
+        createHttpMessage(isSave) {
+            gantt.message({
+                type  : isSave ? 'success' : 'error',
+                text  : isSave ? 'Сохранено' : 'Данные изменения не возможны'  ,
+                expire: 5000,
+            });  
         },
 
         //common config:
@@ -318,7 +326,6 @@ export default {
                 }
             ];
         },
-
         // set calendar config:
         setScaleConfig(state) {
             gantt.config.smart_scales = true;
@@ -375,6 +382,3 @@ export default {
     }
 };
 </script>
-<style lang="scss">
-
-</style>
