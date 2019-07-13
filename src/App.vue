@@ -31,16 +31,13 @@ import  { createRequest, setWorkDays, setRightFormatDate }      from '@/helpers'
 import { gantt }                                                from 'dhtmlx-gantt';
 import clonedeep                                                from 'lodash.clonedeep';
 import debounce                                                 from 'lodash.debounce';
-import { mixin as clickaway }                                   from 'vue-clickaway';
-import { setTimeout }                                           from 'timers';
 
 export default {
     name      : 'app',
     components: {
         preloader
     },
-    mixins: [clickaway],
-    data  : () => ({
+    data: () => ({
         dataTasks  : null,
         errorText  : '',
         errorEdit  : '',
@@ -71,24 +68,86 @@ export default {
                     this.errorText = error.text || 'Неизвестная ошибка' ;
                 });
         },
+        initGantt(tasks) {
+            this.setTasksData(tasks);
+            this.setLayoutConfig();
+            gantt.init(this.$refs.gantt);
+            gantt.parse(this.tasks);
+
+            this.afterTaskDragProcessing();
+            
+            this.afterEditWorkloadProcessing();
+        },
+        setTasksData(tasks) {
+            this.dataTasks  = clonedeep(tasks);
+            this.tasks.data = tasks;
+        },
+
+        //proccessing move and resize task:
+        afterTaskDragProcessing() {
+            gantt.attachEvent('onAfterTaskDrag', (id, mode, e) => {
+                // console.log(id, mode);
+                
+                const task    = gantt.getTask(id);
+                const changes = {};
+                changes.id    = task.id; 
+                
+                // const newStartDate = setRightFormatDate(task.start_date);
+                // const newEndDate   = setRightFormatDate(task.end_date);
+
+                // if(this.dataTasks.start_date !== newStartDate) {
+                changes.start_date = setRightFormatDate(task.start_date);
+                // } 
+                // if(this.dataTasks.end_date !== newEndDate) {
+                changes.end_date = setRightFormatDate(task.end_date); 
+                // }
+                  
+                // if(Object.keys(changes).length > 1) 
+                
+                this.checkTaskChangesFromServer(changes);
+            });
+        },
         checkTaskChangesFromServer(task) {
             this.setIsLoading();
             createRequest({url : '/get/data.jso'})
                 .then(tasks => {
-                    this.setTasksData(tasks);
-                    gantt.parse(this.tasks);
+                    // this.setTasksData(tasks);
+                    // gantt.parse(this.tasks);
                     this.setIsLoading();
                     //not work refresh
-                    
-                    gantt.refreshData();
                 })
                 .catch(error => {
                     console.error(error);
                     this.errorEdit = error.text || 'Данные изменения невозможны' ;
+                    //  undo not correct work
+                    gantt.undo();
+                    console.log('undo call');
                     
                     this.setIsLoading();
                     //process error
                 });
+        },
+
+        //proccessing edit workload:
+        afterEditWorkloadProcessing() {
+            if (this.stateScale === 'day') {
+                gantt.attachEvent('onTaskClick',  (id ,e) => {
+                    const fields = document.getElementsByClassName('js-workload');
+            
+                    for(let i = 0 ; i < fields.length; i++) {
+                        fields[i].oninput =  e => {
+                            e.preventDefault();
+                            const load = e.target.value.trim();
+                    
+                            const isCorrectWorkload = /^[1-7]$/.test(load);
+                            const isCorrectVal      = isCorrectWorkload && load  ;
+                                        
+                            isCorrectVal ? this.checkWorkloadChangesFromServer(id) :  fields[i].value = '';
+                        };
+                    }
+                    return true;
+                });
+            }
         },
         checkWorkloadChangesFromServer: debounce(function (task) {
             this.setIsLoading();
@@ -106,59 +165,12 @@ export default {
                     this.setIsLoading();
                     //process error
                 },200);
-        }),
+        }),     
         setIsLoading() {
             this.isLoading = !this.isLoading;
         },
-        setTasksData(tasks) {
-            this.dataTasks  = clonedeep(tasks);
-            this.tasks.data = tasks;
-        },
-        initGantt(tasks) {
-            this.setTasksData(tasks);
-            this.setLayoutConfig();
-            gantt.init(this.$refs.gantt);
-            gantt.parse(this.tasks);
 
-            this.afterTaskDragProcessing();
-            setTimeout(() => {
-                this.afterEditWorkloadProcessing(); },5000);
-        },
-
-        afterTaskDragProcessing() {
-            gantt.attachEvent('onAfterTaskDrag', (id, mode, e) => {
-                console.log(id, mode, e);
-                
-                const task    = gantt.getTask(id);
-                const changes = {};
-                changes.id    = task.id; 
-                
-                const newStartDate = setRightFormatDate(task.start_date);
-                const newEndDate   = setRightFormatDate(task.end_date);
-
-                if(this.dataTasks.start_date !== newStartDate) {
-                    changes.start_date = newStartDate; 
-                } 
-                if(this.dataTasks.end_date !== newEndDate) {
-                    changes.end_date = newEndDate; 
-                }
-                
-                if(Object.keys(changes).length > 1) this.checkTaskChangesFromServer(changes);
-            });
-        },
-        afterEditWorkloadProcessing() {
-            const workloads = document.getElementsByClassName('js-workload');
-            for(let i = 0 ; i < workloads.length; i++) {
-                workloads[i].addEventListener('input',(e) => {
-                    // e.preventDefault();
-                    // const onlyNumbers = /^[1-7]$/;
-                    console.log(e);
-                    // if(!onlyNumbers.test(e.target.key)) return false;
-                    this.checkWorkloadChangesFromServer();
-                });
-            }
-        },
-                
+        //common config:
         setLayoutConfig() {
             gantt.config.layout = {
                 
@@ -210,7 +222,6 @@ export default {
                 ],
             };
         },
-        //common config
         setGanttCommonConfig() {
             gantt.config.details_on_dblclick = false;
             const markerId                   = gantt.addMarker({
@@ -219,26 +230,10 @@ export default {
             });
             gantt.getMarker(markerId);
         },
-        //left grid config
-        setColumnsConfig() {
-            gantt.config.columns = [
-                {
-                    name    : 'text',     
-                    label   : 'Тема', 
-                    width   : 400,
-                    tree    : true ,
-                    template: (obj) => `<a  href="${obj.url}">${obj.text}</a> `
-                },
-                {
-                    name    : 'priority',        
-                    label   : 'Приоритет',   
-                    align   : 'center',   
-                    width   : 100 ,
-                    template: (obj) => obj.priority || '' 
-                }
-            ];
-        },
-        //task config
+
+        //right grid config ==>
+
+        //task config:
         setTasksConfig() {
             gantt.config.types.user    = 'user';
             gantt.config.fit_tasks     = true; 
@@ -265,25 +260,66 @@ export default {
                 return this.createWorkLoadCell(loads,task);
             };
         },
+        //create workload cell:
         createWorkLoadCell(loads,task) {
-            let loadHtml     = ``;
-            const isReadonly = this.isReadonly || (task.type !== 'task' || this.stateScale !== 'day') ? 'readonly' : '';
+            const isReadonly = this.isReadonly || (task.type !== 'task' || this.stateScale !== 'day');
+
+            if(!isReadonly) return this.createEditableCell(loads,task);
+            return this.createReadonlyCell(loads,task);
+        },
+        createEditableCell(loads,task) {
+            let loadHtml = ``;
             loads.forEach((load,i) => {
                 const className = load > 7 
                     ? 'error' : load === 7 
                         ? 'success' : '';
                             
-                loadHtml += `<input id="${task.id}"
-                                    index="${i}"
-                                    value="${load || ''}" 
-                                    ${isReadonly} 
-                                    class="js-workload gantt__load-cell ${className}"
-                            >`;
+                loadHtml += `<input task_id="${task.id}"
+                                        index="${i}"
+                                        value="${load || ''}" 
+                                        class="js-workload gantt__load-cell ${className}"
+                                >`;
             });
-            return loadHtml;
+            return loadHtml; 
         },
-        
-        //right grid config
+        createReadonlyCell(loads,task) {
+            let loadHtml = ``;
+
+            loads.forEach((load,i) => {
+                const className = load > 7 
+                    ? 'error' : load === 7 
+                        ? 'success' : '';
+                            
+                loadHtml += `<div class="gantt__load-cell ${className}">
+                                ${load || ''}
+                            </div>`;
+            });
+            return loadHtml; 
+        },
+
+        //left grid config ==>
+
+        // left columns config
+        setColumnsConfig() {
+            gantt.config.columns = [
+                {
+                    name    : 'text',     
+                    label   : 'Тема', 
+                    width   : 400,
+                    tree    : true ,
+                    template: (obj) => `<a  href="${obj.url}">${obj.text}</a> `
+                },
+                {
+                    name    : 'priority',        
+                    label   : 'Приоритет',   
+                    align   : 'center',   
+                    width   : 100 ,
+                    template: (obj) => obj.priority || '' 
+                }
+            ];
+        },
+
+        // set calendar config:
         setScaleConfig(state) {
             gantt.config.smart_scales = true;
             this.stateScale           = state;

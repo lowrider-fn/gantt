@@ -97,7 +97,9 @@ color: black;
 }
 
 .gantt__load-cell{
-    display: inline-block;
+    z-index: 99999999999999999999999999999999999999999999999999999999999;
+
+display: inline-block;
 
 cursor: pointer;
 
