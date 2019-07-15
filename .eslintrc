@@ -29,7 +29,11 @@
       "linebreak-style": 0,
       "no-return-assign": 0,
       "func-names":0,
-
+"no-multi-spaces":0,
+"default-case":0,
+"arca/curly":0,
+"no-unused-expressions":0,
+"no-plusplus":0,
 
       "vue/attribute-hyphenation":0,
       "vue/html-quotes": 0,

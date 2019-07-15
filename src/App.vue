@@ -26,12 +26,14 @@
 </template>
 
 <script>
-import preloader from './components/preloader';
-import { createRequest, setWorkDays, setRightFormatDate } from '@/helpers';
+import preloader                                                              from './components/preloader';
+import {
+    createRequest, setWorkDays, setRightFormatDate, setGanttFormatDate,
+} from '@/helpers';
 
-import { gantt } from 'dhtmlx-gantt';
-import clonedeep from 'lodash.clonedeep';
-import debounce from 'lodash.debounce';
+import { gantt }                                                              from 'dhtmlx-gantt';
+import clonedeep                                                              from 'lodash.clonedeep';
+import debounce                                                               from 'lodash.debounce';
 
 export default {
     name      : 'App',
@@ -41,7 +43,6 @@ export default {
     data: () => ({
         dataTasks  : null,
         errorText  : '',
-        errorEdit  : '',
         tasks      : { data: null },
         isReadonly : false,
         statesScale: [
@@ -72,6 +73,7 @@ export default {
         initGantt(tasks) {
             this.setTasksData(tasks);
             this.setLayoutConfig();
+
             gantt.init(this.$refs.gantt);
             gantt.parse(this.tasks);
 
@@ -80,53 +82,53 @@ export default {
             this.afterEditWorkloadProcessing();
         },
         setTasksData(tasks) {
-            this.dataTasks = clonedeep(tasks);
+            this.dataTasks  = clonedeep(tasks);
             this.tasks.data = tasks;
         },
-
+        // rewrite post http logic
         // proccessing move and resize task:
         afterTaskDragProcessing() {
             gantt.attachEvent('onAfterTaskDrag', (id, mode, e) => {
-                // console.log(id, mode);
-
-                const task = gantt.getTask(id);
+                const task    = gantt.getTask(id);
                 const changes = {};
-                changes.id = task.id;
-
+                changes.id    = task.id;
                 // const newStartDate = setRightFormatDate(task.start_date);
                 // const newEndDate   = setRightFormatDate(task.end_date);
-
                 // if(this.dataTasks.start_date !== newStartDate) {
                 changes.start_date = setRightFormatDate(task.start_date);
                 // }
                 // if(this.dataTasks.end_date !== newEndDate) {
                 changes.end_date = setRightFormatDate(task.end_date);
                 // }
-
                 // if(Object.keys(changes).length > 1)
-
                 this.checkTaskChangesFromServer(changes);
             });
         },
-        checkTaskChangesFromServer(task) {
+        checkTaskChangesFromServer: debounce(function (task) {
             this.setIsLoading();
-            createRequest({ url: '/get/data.jso' })
+            createRequest({ url: '/post/data.json' })
                 .then((tasks) => {
-                    this.setIsLoading();
+                    this.refreshTasksData(tasks);
                     this.createHttpMessage(true);
-                    // not work refresh
+                    this.setIsLoading();
                 })
                 .catch((error) => {
                     console.error(error);
-                    this.errorEdit = error.text || 'Данные изменения невозможны';
-                    //  undo not correct work
                     gantt.undo();
-                    console.log('undo call');
-
-                    this.setIsLoading();
                     this.createHttpMessage(false);
-                    // process error
+                    this.setIsLoading();
                 });
+        }),
+        refreshTasksData(tasks) {
+            tasks.forEach((newTask) => {
+                const oldTask = gantt.getTask(newTask.id);
+                if (newTask.type === gantt.config.types.task) {
+                    if (oldTask.start_date) oldTask.start_date = setGanttFormatDate(newTask.start_date);
+                    if (oldTask.end_date) oldTask.end_date = setGanttFormatDate(newTask.end_date);
+                }
+                oldTask.loads = newTask.loads;
+            });
+            gantt.refreshData();
         },
 
         // proccessing edit workload:
@@ -141,9 +143,16 @@ export default {
                             const load = e.target.value.trim();
 
                             const isCorrectWorkload = /^[1-7]$/.test(load);
-                            const isCorrectVal = isCorrectWorkload && load;
+                            const isCorrectVal      = isCorrectWorkload && load;
+                            console.log(e);
 
-                            isCorrectVal ? this.checkWorkloadChangesFromServer(id) : fields[i].value = '';
+                            const changes = {
+                                id     : e.target.getAttribute('task_id'),
+                                index  : e.target.getAttribute('index'),
+                                oldLoad: e.target.oldValue,
+                                newLoad: e.target.value,
+                            };
+                            isCorrectVal ? this.checkWorkloadChangesFromServer(changes) : fields[i].value = '';
                         };
                     }
                     return true;
@@ -154,19 +163,18 @@ export default {
             this.setIsLoading();
             createRequest({ url: '/get/data.jso' })
                 .then((tasks) => {
-                    this.setIsLoading();
-                    // not work refresh
+                    this.refreshTasksData(tasks);
                     this.createHttpMessage(true);
+                    this.setIsLoading();
                 })
                 .catch((error) => {
                     console.error(error);
-                    this.errorEdit = error.text || 'Данные изменения невозможны';
 
-                    this.setIsLoading();
                     this.createHttpMessage(false);
+                    this.setIsLoading();
                     // process error
-                }, 200);
-        }),
+                });
+        }, 300),
         setIsLoading() {
             this.isLoading = !this.isLoading;
         },
@@ -232,8 +240,9 @@ export default {
             };
         },
         setGanttCommonConfig() {
+            gantt.config.undo_steps          = 1;
             gantt.config.details_on_dblclick = false;
-            const markerId = gantt.addMarker({
+            const markerId                   = gantt.addMarker({
                 start_date: new Date(),
                 css       : 'today',
             });
@@ -244,19 +253,19 @@ export default {
 
         // task config:
         setTasksConfig() {
-            gantt.config.types.user = 'user';
-            gantt.config.fit_tasks = true;
+            gantt.config.types.user    = 'user';
+            gantt.config.fit_tasks     = true;
             gantt.config.duration_unit = 'week';
             gantt.config.duration_step = 1;
 
-            gantt.templates.task_class = function (start, end, task) {
+            gantt.templates.task_class =  (start, end, task) => {
                 task.type = gantt.config.types[task.type];
                 if (task.type === gantt.config.types.user) return 'gantt__user-scale';
                 if (task.type === gantt.config.types.project) return 'gantt__project-scale';
                 return 'gantt__task-scale';
             };
 
-            gantt.templates.leftside_text = function (start, end, task) {
+            gantt.templates.leftside_text = (start, end, task) => {
                 if (task.time && task.time_used) return `(${task.time} - ${task.time_used})`;
             };
 
@@ -265,17 +274,13 @@ export default {
         },
         setWorkLoadTemplates() {
             gantt.templates.task_text = (start, end, task) => {
-                const loads = task.loads[this.stateScale];
-                return this.createWorkLoadCell(loads, task);
+                const loads      = task.loads[this.stateScale];
+                const isReadonly = this.isReadonly || (task.type !== gantt.config.types.task || this.stateScale !== 'day');
+
+                return isReadonly ? this.createReadonlyCell(loads, task) : this.createEditableCell(loads, task);
             };
         },
         // create workload cell:
-        createWorkLoadCell(loads, task) {
-            const isReadonly = this.isReadonly || (task.type !== 'task' || this.stateScale !== 'day');
-
-            if (!isReadonly) return this.createEditableCell(loads, task);
-            return this.createReadonlyCell(loads, task);
-        },
         createEditableCell(loads, task) {
             let loadHtml = '';
             loads.forEach((load, i) => {
@@ -330,7 +335,7 @@ export default {
         // set calendar config:
         setScaleConfig(state) {
             gantt.config.smart_scales = true;
-            this.stateScale = state;
+            this.stateScale           = state;
             switch (state) {
             case 'day':
                 this.setScaleDay();
@@ -345,19 +350,19 @@ export default {
             }
         },
         setScaleDay() {
-            gantt.config.scale_unit = 'day';
-            gantt.config.step = 1;
-            gantt.config.date_scale = '%d';
-            gantt.config.subscales = [
+            gantt.config.scale_unit          = 'day';
+            gantt.config.step                = 1;
+            gantt.config.date_scale          = '%d';
+            gantt.config.subscales           = [
                 { unit: 'month', step: 1, date: '%F, %Y' },
             ];
-            gantt.config.scale_height = 60;
+            gantt.config.scale_height        = 60;
             gantt.templates.scale_cell_class = date => setWorkDays(date, this.stateScale);
-            gantt.config.readonly = this.isReadonly;
+            gantt.config.readonly            = this.isReadonly;
         },
         setScaleWeek() {
-            gantt.config.scale_unit = 'month';
-            gantt.config.date_scale = '%F, %Y';
+            gantt.config.scale_unit    = 'month';
+            gantt.config.date_scale    = '%F, %Y';
             gantt.templates.date_scale = null;
 
             gantt.config.scale_height = 60;
@@ -365,19 +370,19 @@ export default {
             gantt.config.subscales = [
                 { unit: 'week', step: 1, date: '%W' },
             ];
-            gantt.config.readonly = true;
+            gantt.config.readonly  = true;
             gantt.render();
         },
         setScaleMonth() {
-            gantt.config.scale_unit = 'year';
-            gantt.config.date_scale = '%Y';
+            gantt.config.scale_unit    = 'year';
+            gantt.config.date_scale    = '%Y';
             gantt.templates.date_scale = null;
-            gantt.config.scale_height = 60;
+            gantt.config.scale_height  = 60;
 
             gantt.config.subscales = [
                 { unit: 'month', step: 1, date: '%M' },
             ];
-            gantt.config.readonly = true;
+            gantt.config.readonly  = true;
             gantt.render();
         },
     },
