@@ -1,5 +1,5 @@
 const setGanttFormatDate = (date) => {
-    const [y, m, d] = date.split('-');
-    return new Date(d, m, y);
+    const [yyyy, mm, dd] = date.split('-');
+    return new Date(dd, mm, yyyy);
 };
 export default setGanttFormatDate;
