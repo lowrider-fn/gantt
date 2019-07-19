@@ -66,6 +66,7 @@ export default {
             gantt.parse(this.tasks);
             this.afterTaskDragProcessing();
             this.afterEditWorkloadProcessing();
+            this.taskDragProcessing();
         },
 
         // http logic ==>
@@ -89,6 +90,32 @@ export default {
                     end_date  : setRightFormatDate(task.end_date),
                 };
                 this.checkTaskChangesFromServer(changes);
+            });
+        },
+        taskDragProcessing() {
+            gantt.attachEvent('onTaskDrag', (id, mode, task, original) => {
+                const state = gantt.getState();
+                const minDate = state.min_date;
+                const maxDate = state.max_date;
+
+                const scaleStep = gantt.date.add(new Date(), state.scale_step, state.scale_unit) - new Date();
+
+                let showDate;
+                let repaint = false;
+                if (mode === 'resize' || mode === 'move') {
+                    if (Math.abs(task.start_date - minDate) < scaleStep) {
+                        showDate = task.start_date;
+                        repaint = true;
+                    } else if (Math.abs(task.end_date - maxDate) < scaleStep) {
+                        showDate = task.end_date;
+                        repaint = true;
+                    }
+
+                    if (repaint) {
+                        gantt.render();
+                        gantt.showDate(showDate);
+                    }
+                }
             });
         },
         // proccessing edit workload:
@@ -139,6 +166,7 @@ export default {
                 if (!input && newTask.type === gantt.config.types.task) {
                     if (oldTask.start_date) oldTask.start_date = setGanttFormatDate(newTask.start_date);
                     if (oldTask.end_date) oldTask.end_date = setGanttFormatDate(newTask.end_date);
+                    // console.log(setGanttFormatDate(newTask.end_date));
                 }
                 oldTask.loads = newTask.loads;
             });
