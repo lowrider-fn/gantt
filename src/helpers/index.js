@@ -1,11 +1,27 @@
-import createRequest      from './createRequest';
-import setWorkDays        from './setWorkDays';
-import setRightFormatDate from './setRightFormatDate';
-import setGanttFormatDate from './setGanttFormatDate';
+import createRequest                                                     from './create-request';
+import setWorkDays                                                       from './set-work-day';
+
+import {
+    dateToString, dateToLocaleString, minToHour, dateToNumberArray,
+} from './date-processing';
+
+import {
+    querySelectorAll,
+    getElementsByClassName,
+    addClass,
+    querySelector,
+
+} from './library';
 
 export  {
     createRequest,
     setWorkDays,
-    setRightFormatDate,
-    setGanttFormatDate,
+    dateToLocaleString,
+    dateToString,
+    minToHour,
+    querySelectorAll,
+    getElementsByClassName,
+    addClass,
+    querySelector,
+    dateToNumberArray,
 };
