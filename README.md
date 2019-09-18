@@ -1,4 +1,4 @@
-# hello-world
+# gantt [example](https://lowrider-fn.github.io/gantt/).
 
 ## Project setup
 ```
@@ -7,7 +7,7 @@ npm install
 
 ### Compiles and hot-reloads for development
 ```
-npm run serve
+npm run dev
 ```
 
 ### Compiles and minifies for production
@@ -15,15 +15,8 @@ npm run serve
 npm run build
 ```
 
-### Run your tests
-```
-npm run test
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-### dhtmlx gantt docs https://docs.dhtmlx.com/gantt/desktop__guides.html
-### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
+See [Configuration DHTMLX Gantt](https://https://docs.dhtmlx.com/gantt/api__refs__gantt.html).
+
+

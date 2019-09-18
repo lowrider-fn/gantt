@@ -40,17 +40,13 @@
 <script>
 import preloader from './components/preloader';
 import {
-    createRequest,
+    post, get,
     setWorkDays,
     dateToLocaleString,
     dateToString,
     minToHour,
-    querySelectorAll,
     addClass,
-    querySelector,
-    getElementsByClassName,
-    dateToNumberArray,
-} from '@/helpers';
+} from '@/lib';
 
 import { gantt } from 'dhtmlx-gantt';
 
@@ -91,22 +87,19 @@ export default {
             gantt.init(this.$refs.gantt);
             gantt.parse(this.tasks);
             this.afterTaskDragProcessing();
-            // this.taskDragProcessing();
             this.setMonthWeekWorkload();
         },
 
-        // http logic ==>
-
-        // get tasks http://dev01.bitrix.defa.ru/project/api/?method=getGunt
-        getTasksData() {
-            createRequest({ url: '/get/data.json' })
-                .then(data => this.initGantt(data))
-                .catch((error) => {
-                    console.error(error);
-                    this.errorText = error.text || 'Неизвестная ошибка';
-                });
+        async getTasksData() {
+            const { res, err } = await get();
+            if (res) {
+                this.initGantt(res);
+            } else {
+                console.error(err);
+                this.errorText = err.text || 'Неизвестная ошибка';
+            }
         },
-        // proccessing move and resize  task:
+
         afterTaskDragProcessing() {
             gantt.attachEvent('onAfterTaskDrag', (id, mode, e) => {
                 const task    = gantt.getTask(id);
@@ -118,51 +111,25 @@ export default {
                 this.checkTaskChangesFromServer(changes);
             });
         },
-        // taskDragProcessing() {
-        //     gantt.attachEvent('onTaskDrag', (id, mode, task, original) => {
-        //         const state   = gantt.getState();
-        //         const minDate = state.min_date;
-        //         const maxDate = state.max_date;
-
-        //         const scaleStep = gantt.date.add(new Date(), state.scale_step, state.scale_unit) - new Date();
-
-        //         let showDate;
-        //         let repaint = false;
-        //         if (mode === 'resize' || mode === 'move') {
-        //             if (Math.abs(task.start_date - minDate) < scaleStep) {
-        //                 showDate = task.start_date;
-        //                 repaint  = true;
-        //             } else if (Math.abs(task.end_date - maxDate) < scaleStep) {
-        //                 showDate = task.end_date;
-        //                 repaint  = true;
-        //             }
-
-        //             if (repaint) {
-        //                 gantt.render();
-        //                 gantt.showDate(showDate);
-        //             }
-        //         }
-        //     });
-        // },
 
         async checkTaskChangesFromServer(changes) {
             this.setIsLoading();
-            await createRequest({ url: '/post/data.json' })
-                .then((data) => {
-                    this.changes = [];
-                    this.refreshTasksData(data.tasks);
-                    this.createHttpMessage(true);
-                    this.setIsLoading();
-                })
-                .catch((error) => {
-                    console.error(error);
-                    this.changes = [];
-                    gantt.undo();
-                    this.createHttpMessage(false);
-                    gantt.refreshData();
-                    this.setIsLoading();
-                });
+            const { res, err } = await get();
+            if (res) {
+                this.changes = [];
+                this.refreshTasksData(res.tasks);
+                this.createHttpResMessage(true);
+                this.setIsLoading();
+            } else {
+                console.error(err);
+                this.changes = [];
+                gantt.undo();
+                this.createHttpResMessage(false);
+                gantt.refreshData();
+                this.setIsLoading();
+            }
         },
+
         refreshTasksData(tasks) {
             tasks.forEach((newTask) => {
                 const oldTask = gantt.getTask(newTask.id);
@@ -174,11 +141,12 @@ export default {
             });
             gantt.refreshData();
         },
+
         setIsLoading() {
             this.isLoading = !this.isLoading;
         },
-        // create post http message
-        createHttpMessage(isSave) {
+
+        createHttpResMessage(isSave) {
             gantt.message({
                 type  : isSave ? 'success' : 'error',
                 text  : isSave ? 'Сохранено' : 'Данные изменения не возможны',
@@ -186,7 +154,6 @@ export default {
             });
         },
 
-        // common config:
         setLayoutConfig() {
             gantt.config.layout = {
 
@@ -230,6 +197,7 @@ export default {
                 ],
             };
         },
+
         setGanttCommonConfig() {
             const { config }           = gantt;
             config.undo_steps          = 1;
@@ -243,7 +211,6 @@ export default {
             config.end_date   = dateToString(this.tasks.endDate);
         },
 
-        // task config:
         setTasksConfig() {
             const { config }     = gantt;
             const { templates }  = gantt;
@@ -263,10 +230,10 @@ export default {
                 if (task.time && task.time_used) return `(${minToHour(task.time)} - ${minToHour(task.time_used)})`;
             };
             gantt.templates.scale_cell_class = date => setWorkDays(date, this.stateScale);
-            templates.task_cell_class        = (task, date) => `${setWorkDays(date, this.stateScale)} ${dateToLocaleString(date)}`;
+            templates.timeline_cell_class = (task, date) => `${setWorkDays(date, this.stateScale)} ${dateToLocaleString(date)}`;
             this.setDayWorkLoadCell();
         },
-        // only day standart logic
+
         setDayWorkLoadCell() {
             gantt.templates.task_text = (start, end, task) => {
                 const isReadonly = this.tasks.readonly || task.type !== gantt.config.types.task;
@@ -296,20 +263,15 @@ export default {
         },
 
         setMonthWeekWorkload() {
-            gantt.attachEvent('onTaskRowClick', (id, row) => {
+            gantt.attachEvent('onTaskClick', (id) => {
+                this.editWorkload(id);
                 this.setReadOnlyWorkloadCell();
                 return true;
             });
-            gantt.attachEvent('onTaskSelected', (id, row) => {
-                this.editWorkload(id, row);
-                this.setReadOnlyWorkloadCell();
-                return false;
-            });
         },
-        // proccessing edit workload:
-        editWorkload(id, row) {
+        editWorkload(id) {
             if (this.stateScale === 'day') {
-                const fields = querySelectorAll('.js-workload', row);
+                const fields = this.$el.querySelectorAll(`[task_cell_id="${id}"]`);
                 Array.from(fields).forEach((field) => {
                     field.oninput = (e) => {
                         e.preventDefault();
@@ -333,34 +295,38 @@ export default {
                 });
             }
         },
+
         setReadOnlyWorkloadCell() {
             if (this.stateScale !== 'day') {
-                const rows = querySelectorAll('[task_id]');
+                const rows = this.$el.querySelectorAll('[task_id]');
+
                 Array.from(rows).forEach((row) => {
                     const id      = row.getAttribute('task_id');
                     const task    = gantt.getTask(id);
                     const loads   = task.loads[this.stateScale];
-                    let className = 'normal';
+
                     loads.forEach((l) => {
-                        const load = minToHour(l.time);
-                        if (this.stateScale === 'week') {
-                            if (load > 35) className = 'error';
-                            else if (load === 35) className = 'success';
-                        } else if (this.stateScale === 'month') {
-                            if (load > 170) className = 'error';
-                            else if (load === 170) className = 'success';
-                        }
-                        const cell = getElementsByClassName(l.date, row);
-                        if (cell.length > 0 && load) {
-                            cell[0].textContent = load;
-                            addClass(cell[0], className);
+                        const cell = row.getElementsByClassName(l.date);
+                        if (cell.length > 0 && l.time) {
+                            let className = 'normal';
+                            const load = minToHour(l.time);
+                            if (this.stateScale === 'week') {
+                                if (load > 35) className = 'error';
+                                else if (load === 35) className = 'success';
+                            } else if (this.stateScale === 'month') {
+                                if (load > 170) className = 'error';
+                                else if (load === 170) className = 'success';
+                            }
+                            if (load) {
+                                cell[0].textContent = load;
+                                addClass(cell[0], className);
+                            }
                         }
                     });
                 });
             }
         },
 
-        // left columns config
         setColumnsConfig() {
             gantt.config.columns = [
                 {
@@ -380,7 +346,6 @@ export default {
             ];
         },
 
-        // set calendar config:
         setScaleConfig(state) {
             gantt.config.smart_scales = true;
             this.stateScale           = state;
@@ -399,6 +364,7 @@ export default {
                 break;
             }
         },
+
         setScaleDay() {
             const { config } = gantt;
 
@@ -412,6 +378,7 @@ export default {
 
             config.readonly = this.tasks.readonly;
         },
+
         setScaleWeek() {
             const { config } = gantt;
 
@@ -426,6 +393,7 @@ export default {
 
             gantt.render();
         },
+
         setScaleMonth() {
             const { config } = gantt;
 
@@ -439,6 +407,7 @@ export default {
             config.readonly            = true;
             gantt.render();
         },
+
         cancelEdit() {
             gantt.refreshData();
             this.changes = [];

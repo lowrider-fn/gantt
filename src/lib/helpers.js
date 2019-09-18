@@ -1,3 +1,5 @@
+const addClass = (el, className) => el.classList.add(className);
+
 const setWorkDays = (date, state) => {
     date             = date.getDay();
     const rightState = 'day';
@@ -5,4 +7,7 @@ const setWorkDays = (date, state) => {
     if (state === rightState && (date === 0 || date === 6)) return 'gantt__weekend';
     return 'gantt__workday';
 };
-export default setWorkDays;
+export {
+    addClass, setWorkDays,
+};
+

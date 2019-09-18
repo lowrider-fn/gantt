@@ -149,3 +149,29 @@ input::-webkit-inner-spin-button{
         color: #dc3545;font-weight: 700;
     }
 }
+button{
+    margin : 0;
+    padding : 0;
+    cursor : pointer;
+    text-decoration : none;
+    color : inherit;
+    border : none;
+    -webkit-border-radius : 0;
+    -moz-border-radius : 0;
+    border-radius : 4px;
+    outline : none;
+    background : none;
+
+    -webkit-appearance : none;
+    -moz-appearance : none;
+    -ms-appearance : none;
+    -o-appearance : none;
+    appearance : none;
+    background:#3db9d3;
+    color:white;
+font-size: 14px;
+    text-transform: uppercase;
+    font-weight: normal;
+    padding: 10px 20px;
+    margin: 5px;
+}

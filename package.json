@@ -1,5 +1,5 @@
 {
-  "name": "bitrix_24_gantt",
+  "name": "gantt",
   "version": "0.1.0",
   "private": true,
   "scripts": {
