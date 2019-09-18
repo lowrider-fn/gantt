@@ -1,4 +1,4 @@
-# gantt [example](https://lowrider-fn.github.io/gantt/).
+# gantt
 
 ## Project setup
 ```
