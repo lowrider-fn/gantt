@@ -3,7 +3,7 @@ import axios from 'axios';
 const outErr = err => ({ res: null, err });
 const outRes = res => ({ res, err: null });
 
-const baseUrl = process.env.NODE_ENV === 'production' ? '/gant' : '';
+const baseUrl = process.env.NODE_ENV === 'production' ? '/gantt' : '';
 
 const post = async (data) => {
     try {
