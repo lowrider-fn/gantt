@@ -1,177 +1,185 @@
-
-body{
-    margin: 0;
-    padding: 0;
-
-    .gantt{
-        height: 380px;
-    }
-
-    .gantt--day{
-        .gantt__load-cell{
-            width: 70px;
-        }
-    }
-
-    .gantt--week{
-        .gantt__load-cell{
-            width: 169px;
-        }
-    }
-
-    .gantt--month{
-        .gantt__load-cell{
-            width: 254px;
-        }
-    }
-
-    .gantt_link_control{
-        display: none;
-    }
-
-    .gantt_task_progress_drag{
-        display: none!important;
-    }
-
-    .gantt_task_content{
-        text-align: left;
-        color: black;
-    }
-
-    .gantt_task_line.gantt_selected{
-        box-shadow: 0 0 5px #299cb4!important;
-    }
-
-    .gantt__user-scale{
-        pointer-events: none,;
-        border: none;
-        background-color: transparent;
-        box-shadow: none!important;
-
-
-        .gantt__load-cell{
-            background-color: transparent;
-        }
-    }
-    .gantt__user-scale.gantt_task_line.gantt_selected{
-        box-shadow: none!important;
-    }
-
-    .gantt__project-scale{
-        border:1px solid rgba(109, 108, 108, 0.8)!important;
-        background: rgba(109, 108, 108, 0.2) !important;
-
-        .gantt_task_progress{
-            background: #4aaec257!important;
-        }
-    }
-
-    .gantt__task-scale{
-        border:1px solid #3dbad38e;
-        background: #3dbad363 !important;
-
-        .gantt_task_progress {
-            background-color: #54d3ec44!important;
-        }
-    }
-
-    .gantt__row-label{
-        position: absolute;
-        transform: translateX(-110%);
-        color: black;
-    }
-
-    .gantt__weekend{
-        background: rgba(238, 149, 149, 0.24) !important;
-    }
-
-    .gantt__workday{
-        background: rgba(109, 108, 108, 0.02) !important;
-    }
+html,
+body {
+  height: 100%;
 }
 
-.gantt__load-cell{
-    z-index: 9999;
-    display: inline-block;
-    cursor: pointer;
-    text-align: center;
-    border: none;
-    outline: none;
-    background: transparent;
+body {
+  margin: 0;
+  padding: 0;
 
-    &.success{
-        color: #28a745;font-weight: 700;
-    }
-
-    &.error{
-        color: #dc3545;font-weight: 700;
-    }
-}
-input::-webkit-inner-spin-button{
-    display: none!important;
-}
-.container{
-    position: relative;
-}
-
-.preloader{
-    position: absolute;
-    z-index: 1;
-    top: 0;
-    left: 0;
-    display: flex;
-    width: 100%;
+  .gantt {
     height: 100%;
-    transition: all, 0.5s,ease-out;
-    background: white;
+  }
 
-    align-items: center;
-    justify-content: center;
-}
-.dhtmlx-success{
-    div{
-        color: white;
-        background: #28a745;
-
-        ;
+  .gantt--day {
+    .gantt__load-cell {
+      width: 70px;
     }
-}
-.gantt_task_cell{
-    text-align: center;
-    vertical-align: middle;
-    font-weight: 600;
-    line-height: 2.5;
-    &.success{
-        color: #28a745;font-weight: 700;
-    }
+  }
 
-    &.error{
-        color: #dc3545;font-weight: 700;
+  .gantt--week {
+    .gantt__load-cell {
+      width: 169px;
     }
-}
-button{
-    margin : 0;
-    padding : 0;
-    cursor : pointer;
-    text-decoration : none;
-    color : inherit;
-    border : none;
-    -webkit-border-radius : 0;
-    -moz-border-radius : 0;
-    border-radius : 4px;
-    outline : none;
-    background : none;
+  }
 
-    -webkit-appearance : none;
-    -moz-appearance : none;
-    -ms-appearance : none;
-    -o-appearance : none;
-    appearance : none;
-    background:#3db9d3;
-    color:white;
-font-size: 14px;
-    text-transform: uppercase;
-    font-weight: normal;
-    padding: 10px 20px;
-    margin: 5px;
+  .gantt--month {
+    .gantt__load-cell {
+      width: 254px;
+    }
+  }
+
+  .gantt_link_control {
+    display: none;
+  }
+
+  .gantt_task_progress_drag {
+    display: none !important;
+  }
+
+  .gantt_task_content {
+    text-align: left;
+    color: black;
+  }
+
+  .gantt_task_line.gantt_selected {
+    box-shadow: 0 0 5px #299cb4 !important;
+  }
+
+  .gantt__user-scale {
+    pointer-events: none;
+    border: none;
+    background-color: transparent;
+    box-shadow: none !important;
+
+    .gantt__load-cell {
+      background-color: transparent;
+    }
+  }
+  .gantt__user-scale.gantt_task_line.gantt_selected {
+    box-shadow: none !important;
+  }
+
+  .gantt__project-scale {
+    border: 1px solid rgba(109, 108, 108, 0.8) !important;
+    background: rgba(109, 108, 108, 0.2) !important;
+
+    .gantt_task_progress {
+      background: #4aaec257 !important;
+    }
+  }
+
+  .gantt__task-scale {
+    border: 1px solid #3dbad38e;
+    background: #3dbad363 !important;
+
+    .gantt_task_progress {
+      background-color: #54d3ec44 !important;
+    }
+  }
+
+  .gantt__row-label {
+    position: absolute;
+    transform: translateX(-110%);
+    color: black;
+  }
+
+  .gantt__weekend {
+    background: rgba(238, 149, 149, 0.24) !important;
+  }
+
+  .gantt__workday {
+    background: rgba(109, 108, 108, 0.02) !important;
+  }
+}
+
+.gantt__load-cell {
+  z-index: 9999;
+  display: inline-block;
+  cursor: pointer;
+  text-align: center;
+  border: none;
+  outline: none;
+  background: transparent;
+
+  &.success {
+    color: #28a745;
+    font-weight: 700;
+  }
+
+  &.error {
+    color: #dc3545;
+    font-weight: 700;
+  }
+}
+input::-webkit-inner-spin-button {
+  display: none !important;
+}
+.container {
+  position: relative;
+  height: 100%;
+}
+.container > div {
+  height: 100%;
+}
+.preloader {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: all, 0.5s, ease-out;
+  background: white;
+
+  align-items: center;
+  justify-content: center;
+}
+.dhtmlx-success {
+  div {
+    color: white;
+    background: #28a745;
+  }
+}
+.gantt_task_cell {
+  text-align: center;
+  vertical-align: middle;
+  font-weight: 600;
+  line-height: 2.5;
+  &.success {
+    color: #28a745;
+    font-weight: 700;
+  }
+
+  &.error {
+    color: #dc3545;
+    font-weight: 700;
+  }
+}
+button {
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  border: none;
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  border-radius: 4px;
+  outline: none;
+  background: none;
+
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  -ms-appearance: none;
+  -o-appearance: none;
+  appearance: none;
+  background: #3db9d3;
+  color: white;
+  font-size: 14px;
+  text-transform: uppercase;
+  font-weight: normal;
+  padding: 10px 20px;
+  margin: 5px;
 }
