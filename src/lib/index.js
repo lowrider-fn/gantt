@@ -7,14 +7,11 @@ import {
     dateToNumberArray,
 } from './date-processing';
 
-import {
+import { addClass, setWorkDays } from './helpers';
 
-    addClass, setWorkDays,
-
-} from './helpers';
-
-export  {
-    post, get,
+export {
+    post,
+    get,
     setWorkDays,
     dateToLocaleString,
     dateToString,

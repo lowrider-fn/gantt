@@ -1,31 +1,71 @@
 html,
-body {
+body,
+#app {
   height: 100%;
+  overflow: hidden;
 }
 
 body {
   margin: 0;
   padding: 0;
 
-  .gantt {
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .app__toolbar {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    border-bottom: 1px solid #e5e5e5;
+    background: #fff;
+  }
+
+  .app__scale,
+  .app__actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .app__disclaimer {
+    flex: 1;
+    margin: 0;
+    padding: 0 12px;
+    font-size: 12px;
+    color: #888;
+    text-align: center;
+  }
+
+  .app__gantt {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .app__error {
+    padding: 16px;
+  }
+
+  .gantt,
+  .gantt_container {
     height: 100%;
   }
 
   .gantt--day {
     .gantt__load-cell {
-      width: 70px;
+      width: 100%;
+      max-width: 36px;
     }
   }
 
-  .gantt--week {
-    .gantt__load-cell {
-      width: 169px;
-    }
-  }
-
+  .gantt--week,
   .gantt--month {
-    .gantt__load-cell {
-      width: 254px;
+    .gantt_task_cell {
+      font-size: 13px;
     }
   }
 
@@ -61,12 +101,13 @@ body {
   }
 
   .gantt__project-scale {
-    border: 1px solid rgba(109, 108, 108, 0.8) !important;
-    background: rgba(109, 108, 108, 0.2) !important;
+    visibility: hidden !important;
+    pointer-events: none;
+  }
 
-    .gantt_task_progress {
-      background: #4aaec257 !important;
-    }
+  .gantt__project-vacation-bar {
+    pointer-events: none;
+    z-index: 1;
   }
 
   .gantt__task-scale {
@@ -115,12 +156,8 @@ body {
 input::-webkit-inner-spin-button {
   display: none !important;
 }
-.container {
+.app {
   position: relative;
-  height: 100%;
-}
-.container > div {
-  height: 100%;
 }
 .preloader {
   position: absolute;
@@ -159,27 +196,21 @@ input::-webkit-inner-spin-button {
 }
 button {
   margin: 0;
-  padding: 0;
   cursor: pointer;
   text-decoration: none;
-  color: inherit;
+  color: white;
   border: none;
-  -webkit-border-radius: 0;
-  -moz-border-radius: 0;
   border-radius: 4px;
   outline: none;
-  background: none;
-
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  -ms-appearance: none;
-  -o-appearance: none;
-  appearance: none;
   background: #3db9d3;
-  color: white;
-  font-size: 14px;
+  font-size: 13px;
   text-transform: uppercase;
   font-weight: normal;
-  padding: 10px 20px;
-  margin: 5px;
+  padding: 8px 16px;
+  appearance: none;
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: default;
+  }
 }
